@@ -1,0 +1,63 @@
+---
+
+- name: Deploy Alma/Authorize.net Payment Reporting
+  hosts: uda4
+  remote_user: ulsprovision
+  vars:
+    app_folder: /var/opt/alma-authorizenet-payment-reporting
+    user: almapaymentreporting
+
+  tasks:
+    - name: Grab env vars from env_vars.yml
+      include_vars:
+        file: env_vars.yml
+        name: env_vars
+
+    - name: Create dedicated user
+      user:
+        name: '{{ user }}'
+        state: present
+      become: yes
+
+    - name: Create app folder with group permissions
+      file:
+        path: '{{ app_folder }}'
+        state: directory
+        recurse: yes
+        group: ulssysdev
+        owner: '{{ user }}'
+        mode: '02770'
+      become: yes
+
+    - name: Download executable from github
+      get_url:
+        url: https://github.com/ulsdevteam/alma-authorizenet-payment-reporting/releases/download/release-0.1.0/alma-authorizenet-payment-reporting
+        dest: '{{ app_folder }}/alma-authorizenet-payment-reporting'
+        owner: '{{ user }}'
+        mode: '0770'
+      become: yes
+
+    - name: Set environment variables
+      lineinfile:
+        dest: '/home/{{ user }}/.profile'
+        state: present
+        regexp: '^export {{ item.key }}='
+        line: 'export {{ item.key }}={{ item.value }}'
+      with_items: '{{ env_vars | dict2items }}'
+      become: yes
+
+    - name: Schedule cron job
+      cron:
+        name: 'run alma-authorizenet-payment-reporting'
+        hour: '4'
+        minute: '0'
+        job: "/usr/local/bin/cronic sh -c 'source ~/.profile; {{ app_folder }}/alma-authorizenet-payment-reporting'"
+      become: yes
+      become_user: '{{ user }}'
+
+    - name: Send mail to root
+      lineinfile:
+        dest: /etc/aliases
+        regexp: '^{{ user }}:'
+        line: '{{ user }}:    root'
+      become: yes
