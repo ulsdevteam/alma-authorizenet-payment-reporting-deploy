@@ -31,7 +31,7 @@
 
     - name: Download executable from github
       get_url:
-        url: https://github.com/ulsdevteam/alma-authorizenet-payment-reporting/releases/download/release-0.1.0/alma-authorizenet-payment-reporting
+        url: https://github.com/ulsdevteam/alma-authorizenet-payment-reporting/releases/download/release-0.2.0/alma-authorizenet-payment-reporting
         dest: '{{ app_folder }}/alma-authorizenet-payment-reporting'
         owner: '{{ user }}'
         mode: '0770'
